@@ -1,0 +1,117 @@
+{
+  "kind": "society_vs_baseline",
+  "rows": [
+    {
+      "fault": "db_pool_exhausted",
+      "mode": "baseline",
+      "resolved": true,
+      "mttr": 32.9
+    },
+    {
+      "fault": "db_pool_exhausted",
+      "mode": "society",
+      "resolved": true,
+      "mttr": 121.8
+    },
+    {
+      "fault": "db_host_broken",
+      "mode": "baseline",
+      "resolved": false,
+      "mttr": 63.6
+    },
+    {
+      "fault": "db_host_broken",
+      "mode": "society",
+      "resolved": false,
+      "mttr": 96.0
+    },
+    {
+      "fault": "dependency_timeout",
+      "mode": "baseline",
+      "resolved": false,
+      "mttr": null,
+      "note": "no sick pages"
+    },
+    {
+      "fault": "dependency_timeout",
+      "mode": "society",
+      "resolved": false,
+      "mttr": null,
+      "note": "no sick pages"
+    },
+    {
+      "fault": "env_key_corrupted",
+      "mode": "baseline",
+      "resolved": true,
+      "mttr": 47.2
+    },
+    {
+      "fault": "env_key_corrupted",
+      "mode": "society",
+      "resolved": true,
+      "mttr": 89.3
+    },
+    {
+      "fault": "route_renamed",
+      "mode": "baseline",
+      "resolved": false,
+      "mttr": 42.5
+    },
+    {
+      "fault": "route_renamed",
+      "mode": "society",
+      "resolved": true,
+      "mttr": 101.3
+    },
+    {
+      "fault": "code_orders_bad_method",
+      "mode": "baseline",
+      "resolved": false,
+      "mttr": 12.6
+    },
+    {
+      "fault": "code_orders_bad_method",
+      "mode": "society",
+      "resolved": true,
+      "mttr": 66.1
+    },
+    {
+      "fault": "code_report_bad_method",
+      "mode": "baseline",
+      "resolved": false,
+      "mttr": 8.1
+    },
+    {
+      "fault": "code_report_bad_method",
+      "mode": "society",
+      "resolved": true,
+      "mttr": 88.4
+    },
+    {
+      "fault": "code_edit_blade_error",
+      "mode": "baseline",
+      "resolved": false,
+      "mttr": 11.5
+    },
+    {
+      "fault": "code_edit_blade_error",
+      "mode": "society",
+      "resolved": true,
+      "mttr": 80.1
+    }
+  ],
+  "summary": {
+    "baseline": {
+      "resolution_rate": 0.25,
+      "mean_mttr": 40.0,
+      "solved": 2,
+      "total": 8
+    },
+    "society": {
+      "resolution_rate": 0.75,
+      "mean_mttr": 91.2,
+      "solved": 6,
+      "total": 8
+    }
+  }
+}

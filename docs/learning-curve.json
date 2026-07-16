@@ -1,0 +1,31 @@
+{
+  "kind": "learning_curve",
+  "fault": "db_pool_exhausted",
+  "runs": [
+    {
+      "i": 1,
+      "resolved": true,
+      "mttr": 82.4
+    },
+    {
+      "i": 2,
+      "resolved": true,
+      "mttr": 86.8
+    },
+    {
+      "i": 3,
+      "resolved": true,
+      "mttr": 97.1
+    },
+    {
+      "i": 4,
+      "resolved": true,
+      "mttr": 88.8
+    },
+    {
+      "i": 5,
+      "resolved": true,
+      "mttr": 80.7
+    }
+  ]
+}

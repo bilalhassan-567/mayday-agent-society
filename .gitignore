@@ -26,13 +26,15 @@ patient/storage/framework/sessions/*
 patient/storage/framework/views/*
 patient/.phpunit.result.cache
 
+CLAUDE.md
+.claude/
+docs/dev/
+docs/deployment-proof.md
+docs/submission/submission-checklist.md
+docs/submission/demo-video-script.md
+
 # ─── Editor / OS ───────────────────────────────────────────
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
-# ─── Internal dev notes (not part of the public repo) ──────
-CLAUDE.md
-docs/
-.claude/

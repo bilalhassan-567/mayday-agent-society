@@ -1,0 +1,58 @@
+MAYDAY — sample debate transcript: a full incident where two AI investigators
+genuinely disagree, debate with evidence, and the debate is resolved by trialing
+each fix against real health checks — then trust scores move.
+
+Captured: 2026-07-09 (local qwen2.5:7b, dev). Headline numbers are produced on qwen-max.
+Fault injected: db_pool_exhausted (a DECOY of db_host_broken — both 503 on /users).
+Key result: A and B disagree on the fix value; referee trials both; B wins; trust A 0.5->0.4, B 0.5->0.6.
+
+================================================================================
+=== Incident #1 -- pages ["/health(503)", "/users(503)"] ===
+
+DISPATCH: The application is failing to respond at '/health' and '/users' endpoints due to an exhausted connection pool.
+  category: routing   subtasks: ['Verify current load and scaling of database connections', 'Check for recent changes that might have increased database usage', 'Monitor and log database query details to identify potential bottlenecks', 'Validate routing configuration for any misconfigurations affecting these endpoints']
+
+TRUST-WEIGHTED AUCTION (bid = fit x trust):
+  Investigator B: fit 0.65 x trust 0.5 = bid 0.325  <- lead
+  Investigator A: fit 0.6 x trust 0.5 = bid 0.3
+
+STAKED HYPOTHESES:
+
+  Investigator A (tools used: ['log_search', 'config_read', 'log_search', 'runbook_rag'])
+    cause:      Connection pool exhaustion leads to no available database connections.
+    setting:    db_pool_available -> 10
+    confidence: 0.9
+
+  Investigator B (tools used: ['metrics_query', 'healthcheck_run'])
+    cause:      connection pool exhaustion
+    setting:    db_pool_available -> 20
+    confidence: 0.95
+
+DEBATE:
+
+  Investigator A [HOLDS] -> db_pool_available=15 @ conf 0.9
+    attack: The log messages specifically mention '0/10 available connections', indicating that the
+    current pool size of 10 is indeed exhausted. Increasing it to 20 without understanding why...
+
+  Investigator B [HOLDS] -> db_pool_available=20 @ conf 0.95
+    attack: The evidence from metrics_query shows consistent high latency for the /health path,
+    which contradicts the opposing hypothesis of a lower number (10) for db_pool_available...
+
+ADJUDICATION (each fix trialed against real health checks, then reverted):
+  A: db_pool_available=15  -> RESOLVED patient  (score 0.45 = trust 0.5 x conf 0.9)
+  B: db_pool_available=20  -> RESOLVED patient  (score 0.475 = trust 0.5 x conf 0.95)
+
+  VERDICT: Investigator B wins -> db_pool_available=20 (verified fix)
+
+STAKE SETTLEMENT (trust updates, category = database):
+  Investigator A: lost -> trust now 0.4
+  Investigator B: WON  -> trust now 0.6
+================================================================================
+
+Why this is genuine (not scripted):
+- The referee is deterministic code and never reads the fault ledger or manifest;
+  it decides purely by APPLYING each candidate fix and re-running real health checks.
+- The category used for trust settlement is derived from the winning setting
+  (db_pool_available -> "database"), not the dispatcher's guess (which said "routing").
+- Trust only moved because a fix actually resolved the patient; an earlier run where
+  both agents produced non-working fixes was correctly ruled INCONCLUSIVE (no trust change).
