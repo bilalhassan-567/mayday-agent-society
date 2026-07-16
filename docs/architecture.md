@@ -7,7 +7,7 @@ flowchart TB
     end
 
     subgraph Alibaba["Alibaba Cloud (deploy target)"]
-        ECS["ECS — patient + agents"]
+        SAS["Simple Application Server — patient + agents"]
         RDS["ApsaraDB RDS (Postgres)<br/>app_settings · incidents · trust · case_files"]
         OSS["OSS — report uploads"]
     end
@@ -77,7 +77,7 @@ flowchart TB
 
 - **Qwen** everywhere: local Ollama `qwen2.5` for dev, **`qwen-max` on Qwen Cloud**
   for the real proof (single `LLM_PROVIDER` switch; OpenAI-compatible client).
-- **Alibaba Cloud** in prod: ECS hosts the patient + agents; **ApsaraDB RDS**
+- **Alibaba Cloud** in prod: Simple Application Server hosts the patient + agents; **ApsaraDB RDS**
   (Postgres) holds `app_settings`, incidents, trust scores, and case files; **OSS**
   receives report uploads. The MCP `fix.apply` writes the same real config store the
   patient reads — exactly as in prod.

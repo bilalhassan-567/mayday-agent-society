@@ -133,10 +133,10 @@ combination, not the number of agents, is what made the system trustworthy.
 
 ## What's next
 
-We're deploying the patient and the society to Alibaba Cloud (ECS + ApsaraDB RDS Postgres +
-OSS), which also closes out the one fault whose healthy value only exists in a real
-production environment. Then: a bigger fault catalog, and pushing the learning curve
-further with richer case-file memory.
+We're deploying the patient and the society to Alibaba Cloud (Simple Application Server +
+ApsaraDB RDS Postgres + OSS), which also closes out the one fault whose healthy value only
+exists in a real production environment. Then: a bigger fault catalog, and pushing the
+learning curve further with richer case-file memory.
 
 ## Built on Qwen
 
