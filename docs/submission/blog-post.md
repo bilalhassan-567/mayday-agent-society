@@ -16,10 +16,10 @@ the moment an error appeared, it shipped the log straight to Gemini, parsed what
 came back, and applied it directly in the terminal. No debate. No second opinion. No check
 that the fix actually worked. Just one model's guess, applied on faith.
 
-It worked often enough to be exciting, and failed often enough to be dangerous. Of five
-DBAs on the system, only two actually trusted it enough to rely on it — and whenever a bad
-fix looped or made things worse, a human still had to step in and clean up by hand. At the
-time, "agent," "RAG," and "MCP" weren't words I knew yet. I didn't have the vocabulary for
+It worked often enough to be exciting. Of five DBAs on the system, only two actually used
+it to monitor and act on issues day to day — and whenever the same problem kept recurring,
+a DBA still had to step in and clean up by hand. At the time, "agent," "RAG," and "MCP"
+weren't words I knew yet. I didn't have the vocabulary for
 what was actually missing: verification, disagreement, and trust.
 
 ## The problem with one smart agent

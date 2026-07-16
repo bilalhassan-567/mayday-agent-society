@@ -22,9 +22,10 @@ scripted answers, no peeking at the fault key.
 My final-year degree project (2023–24) was a rough version of this idea: a local
 Linux/Python script that watched a database's error log, shipped it straight to an
 LLM, and applied whatever fix came back — no debate, no verification, just hope. It
-worked often enough to be exciting, and failed often enough that only 2 of the 5 DBAs
-on the system actually trusted it. Mayday is what that same idea looks like now that
-I know what was actually missing: verification, disagreement, and trust.
+worked often enough to be exciting — of the 5 DBAs on the system, only 2 actually used
+it to monitor and act on issues day to day, and when the same problem kept recurring, a
+DBA still had to step in and fix it by hand. Mayday is what that same idea looks like now
+that I know what was actually missing: verification, disagreement, and trust.
 
 ---
 
