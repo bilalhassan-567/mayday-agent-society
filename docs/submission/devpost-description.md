@@ -23,9 +23,10 @@ it shipped the log straight to Gemini, parsed whatever fix came back, and applie
 directly in the terminal. No debate, no second opinion, no check that the fix actually
 worked — just one model's guess, applied on faith.
 
-It worked often enough to be exciting. Of five DBAs on the system, only two actually used
-it to monitor and act on issues day to day — and whenever the same problem kept recurring,
-a DBA still had to step in and fix it manually.
+It worked often enough to be exciting. A team like that typically runs on about five DBAs;
+ours got by with two, since most of the routine error-resolution work was already
+automated — until the same problem kept recurring, and a DBA still had to step in and fix
+it manually.
 
 At the time — 2023, before "agent," "RAG," or "MCP" were words I knew — I didn't have the
 vocabulary for what was actually missing: verification, disagreement, and trust. Mayday is
