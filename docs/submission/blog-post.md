@@ -5,6 +5,23 @@ against reality, and get better every time.*
 
 ---
 
+## Where this actually started
+
+Back in 2023, in my final year of my CS degree, a senior alumnus working at IBM told me
+about a problem IBM's own Watsonx team was exploring: could an LLM watch a database's
+error logs and fix things automatically? He handed my partner and me roughly that same
+problem as our final-year project. So we built a rough version of it — a local,
+Linux-based Python script. A Watchman-style process tailed the database's log file, and
+the moment an error appeared, it shipped the log straight to Gemini, parsed whatever fix
+came back, and applied it directly in the terminal. No debate. No second opinion. No check
+that the fix actually worked. Just one model's guess, applied on faith.
+
+It worked often enough to be exciting, and failed often enough to be dangerous. Of five
+DBAs on the system, only two actually trusted it enough to rely on it — and whenever a bad
+fix looped or made things worse, a human still had to step in and clean up by hand. At the
+time, "agent," "RAG," and "MCP" weren't words I knew yet. I didn't have the vocabulary for
+what was actually missing: verification, disagreement, and trust.
+
 ## The problem with one smart agent
 
 Give a single large language model your logs, your metrics, and the ability to run
@@ -12,7 +29,8 @@ commands, and it will confidently diagnose an outage. Sometimes it's right. The 
 the other times: a lone agent that is *confidently wrong* will apply a fix that doesn't
 work, or one that makes things worse, and then tell you it's done. There's no second
 opinion, no adversary, and — most dangerously — often no check that the system actually
-came back.
+came back. That's exactly the failure mode my final-year script had, and exactly what I
+wanted to fix once I actually knew how.
 
 Incident response is exactly the domain where that failure mode is both most tempting to
 automate and most costly to get wrong. So we asked a narrower, more honest question: **can

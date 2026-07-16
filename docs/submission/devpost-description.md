@@ -14,13 +14,33 @@ than a single agent on the same model.
 ---
 
 ## Inspiration
-On-call incident response is where a single AI agent is most tempting and most dangerous.
-Tempting, because diagnosing a broken system from logs and metrics is exactly what LLMs
-are good at. Dangerous, because a lone agent that's *confidently wrong* will happily apply
-a fix that doesn't work — or worse, one that makes things worse — and report success. We
-wanted to see whether a *society* of agents, with disagreement, staked confidence, and a
-referee grounded in reality, could be dramatically more trustworthy than one agent working
-alone. And we wanted to prove it, not claim it.
+This project's real origin goes back to my final-year degree project, 2023–2024. A senior
+alumnus working at IBM pointed me and my partner toward a problem IBM's own Watsonx team
+was exploring at the time: could an LLM watch a database's error logs and fix things
+automatically? We built a rough version of that idea — a local, Linux-based Python script.
+A Watchman-style process tailed the database's log file, and the moment an error appeared,
+it shipped the log straight to Gemini, parsed whatever fix came back, and applied it
+directly in the terminal. No debate, no second opinion, no check that the fix actually
+worked — just one model's guess, applied on faith.
+
+It worked often enough to be exciting, and failed often enough to be dangerous. Of five
+DBAs on the system, only two actually trusted it enough to rely on it day to day — and
+whenever a bad fix looped or made things worse, a human still had to step in and clean up
+manually.
+
+At the time — 2023, before "agent," "RAG," or "MCP" were words I knew — I didn't have the
+vocabulary for what was actually missing: verification, disagreement, and trust. Mayday is
+what that same idea looks like now that I do. Instead of one model guessing and hoping, a
+society of agents debates with staked confidence, and nothing is ever trusted until a real
+health check proves the fix worked. The naive version from my degree taught me exactly what
+to build next.
+
+On-call incident response is where a single AI agent is most tempting and most dangerous —
+diagnosing a broken system from logs and metrics is exactly what LLMs are good at, but a
+lone agent that's *confidently wrong* will happily apply a fix that doesn't work, or report
+success when nothing actually recovered. So this time, we wanted to prove — not just
+claim — that a society with disagreement, staked confidence, and a referee grounded in
+reality is dramatically more trustworthy than one agent working alone.
 
 ## What it does
 Mayday runs an autonomous incident-response society against a real Laravel CRM (the
