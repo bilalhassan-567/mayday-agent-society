@@ -1,5 +1,6 @@
 # ─── Secrets (never commit) ────────────────────────────────
 **/.env
+**/.env.*
 agents/.env
 patient/.env
 

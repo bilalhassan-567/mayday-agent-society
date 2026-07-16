@@ -41,6 +41,11 @@ resolution**, and **efficiency gains over a single-agent baseline**:
   real health check**, then reverting — so "resolved" means the app genuinely came back.
 - When no proposed fix heals the patient, the society returns **INCONCLUSIVE** and
   **escalates honestly** (re-investigate or roll back) rather than faking a success.
+- The fault **ground truth** (`faults/manifest.json`) is public in this repo, on
+  purpose: showing the answer key next to the code that blocks agents from it is a
+  stronger claim than hiding it. Check for yourself — `agents/tools.py`'s
+  `ALLOWED_TABLES` whitelist (`users`, `orders`, `app_settings`) never includes
+  `faults`, so no tool an agent can call is able to reach it.
 
 ---
 
