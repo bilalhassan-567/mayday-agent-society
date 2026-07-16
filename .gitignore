@@ -1,0 +1,37 @@
+# ─── Secrets (never commit) ────────────────────────────────
+**/.env
+agents/.env
+patient/.env
+
+# ─── Python ────────────────────────────────────────────────
+agents/venv/
+**/__pycache__/
+*.pyc
+
+# ─── Local state / generated artifacts ─────────────────────
+agents/data/
+agents/logs/
+docs/benchmark-progress.jsonl
+
+# ─── Laravel (patient) ─────────────────────────────────────
+patient/vendor/
+patient/node_modules/
+patient/public/build/
+patient/public/storage
+patient/database/*.sqlite*
+patient/storage/logs/*.log
+patient/storage/framework/cache/*
+patient/storage/framework/sessions/*
+patient/storage/framework/views/*
+patient/.phpunit.result.cache
+
+# ─── Editor / OS ───────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ─── Internal dev notes (not part of the public repo) ──────
+CLAUDE.md
+docs/
+.claude/

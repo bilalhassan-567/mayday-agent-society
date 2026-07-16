@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "frozen_at": "2026-07-09",
+  "note": "FROZEN GROUND TRUTH for the 5 patient faults. This is the benchmark's answer key: the true root cause of each incident. DO NOT EDIT after Jul 9 (PLAN.md Day 1) — the learning-curve and single-agent baseline numbers must be scored against a fixed target. The AI doctor (Investigators / Verifier / fix.apply) must NEVER read this file or the `faults` DB table; it is for grading only.",
+  "patient_base_url": "http://127.0.0.1:8000",
+  "watch_pages": ["/health", "/users", "/edit", "/orders", "/report"],
+  "faults": [
+    {
+      "key": "db_host_broken",
+      "true_cause": "The user store connection target was changed to a dead database host, so /users cannot open a connection.",
+      "corrupts_setting": "user_store_path",
+      "healthy_value": "the live user store (patient database/database.sqlite; a DB host in prod)",
+      "broken_value": "/mnt/db-primary-10.0.0.5/users.sqlite",
+      "affected_pages": ["/admin/users", "/health"],
+      "expected_http": { "/admin/users": 503, "/health": 503 },
+      "log_signature": "[/users] failed to read user store",
+      "correct_fix": "Restore user_store_path to the live user store location so connections succeed.",
+      "plausible_decoy": "Looks like connection-pool exhaustion (also a 503 on /users). The distinguishing evidence: the pool still reports capacity, but every connection attempt is refused at the target host."
+    },
+    {
+      "key": "db_pool_exhausted",
+      "true_cause": "The database connection pool was drained to 0 available connections, so /users is refused before it can query.",
+      "corrupts_setting": "db_pool_available",
+      "healthy_value": "10",
+      "broken_value": "0",
+      "affected_pages": ["/admin/users", "/health"],
+      "expected_http": { "/admin/users": 503, "/health": 503 },
+      "log_signature": "[/users] connection pool exhausted",
+      "correct_fix": "Restore db_pool_available to the pool size (10).",
+      "plausible_decoy": "Looks like db_host_broken (both 503 on /users). Distinguishing evidence: the host is reachable and the store is fine; the app is simply out of pool slots (0/10)."
+    },
+    {
+      "key": "route_renamed",
+      "true_cause": "The admin user-edit form references a save-route name that no longer exists, so rendering /admin/users/{id}/edit throws RouteNotFoundException.",
+      "corrupts_setting": "edit_save_route",
+      "healthy_value": "admin.users.update",
+      "broken_value": "admin.users.updatex",
+      "affected_pages": ["/admin/users/1/edit", "/health"],
+      "expected_http": { "/admin/users/1/edit": 500, "/health": 503 },
+      "log_signature": "[/admin/users/edit] save route could not be resolved",
+      "correct_fix": "Restore edit_save_route to the registered route name (admin.users.update).",
+      "relocated": "2026-07-13 — moved off the retired standalone /edit page onto the real CRM user-edit form, so every fault now surfaces on a console page the operator can open."
+    },
+    {
+      "key": "dependency_timeout",
+      "true_cause": "The internal orders-enrichment dependency latency was raised past its timeout budget, so /orders times out.",
+      "corrupts_setting": "orders_service_delay_ms",
+      "healthy_value": "40",
+      "broken_value": "8000",
+      "affected_pages": ["/admin/orders", "/health"],
+      "expected_http": { "/admin/orders": 504, "/health": 503 },
+      "log_signature": "[/orders] internal dependency failed",
+      "correct_fix": "Restore orders_service_delay_ms to a value within the timeout budget (40).",
+      "plausible_decoy": "Looks like a slow/failing database (both feel like a backend stall). Distinguishing evidence: the DB and pool are healthy; only the orders enrichment call exceeds its latency budget."
+    },
+    {
+      "key": "env_key_corrupted",
+      "true_cause": "The object-storage (OSS) access key was corrupted, so /report cannot authenticate its upload.",
+      "corrupts_setting": "oss_api_key",
+      "healthy_value": "LTAI-oss-valid-key-9f3a2",
+      "broken_value": "INVALID_KEY",
+      "affected_pages": ["/admin/report", "/health"],
+      "expected_http": { "/admin/report": 500, "/health": 503 },
+      "log_signature": "[/report] report upload failed",
+      "correct_fix": "Restore oss_api_key to a valid access key (starts with LTAI)."
+    },
+    {
+      "key": "code_orders_bad_method",
+      "kind": "code",
+      "true_cause": "OrderController calls an undefined query builder method (orderByx), so /orders throws a fatal BadMethodCallException.",
+      "target_file": "app/Http/Controllers/OrderController.php",
+      "broken_snippet": "->orderByx('id')->get(",
+      "correct_snippet": "->orderBy('id')->get(",
+      "affected_pages": ["/orders"],
+      "expected_http": { "/orders": 500 },
+      "note_health": "/health stays 200 — it probes config/deps, not the controller code",
+      "log_signature": "Call to undefined method ...Builder::orderByx()",
+      "correct_fix": "Patch OrderController.php: orderByx -> orderBy."
+    },
+    {
+      "key": "code_report_bad_method",
+      "kind": "code",
+      "true_cause": "ReportController calls an undefined collection method (sumx), so /report throws a fatal BadMethodCallException.",
+      "target_file": "app/Http/Controllers/ReportController.php",
+      "broken_snippet": "$orders->sumx('amount_cents')",
+      "correct_snippet": "$orders->sum('amount_cents')",
+      "affected_pages": ["/report"],
+      "expected_http": { "/report": 500 },
+      "note_health": "/health stays 200 — controller-level fatal only",
+      "log_signature": "Call to undefined method ...::sumx()",
+      "correct_fix": "Patch ReportController.php: sumx -> sum."
+    },
+    {
+      "key": "code_edit_blade_error",
+      "kind": "code",
+      "true_cause": "The edit view calls a method on a string ($action->missing()), so /edit throws a fatal Error while rendering.",
+      "target_file": "resources/views/edit.blade.php",
+      "broken_snippet": "{{ $action->missing() }}",
+      "correct_snippet": "{{ $action }}",
+      "affected_pages": ["/edit"],
+      "expected_http": { "/edit": 500 },
+      "note_health": "/health stays 200 — routing check passes; the failure is in the view",
+      "log_signature": "Call to a member function missing() on string",
+      "correct_fix": "Patch edit.blade.php: remove the ->missing() call, restore {{ $action }}."
+    }
+  ],
+  "code_faults_added": "2026-07-10 — extends the 5 config/state faults with 3 real source-code faults (fixed via the doctor's code_patch tool; trials revert via file-content snapshots). Added pre-benchmark; the frozen config-fault truth above is unchanged."
+}

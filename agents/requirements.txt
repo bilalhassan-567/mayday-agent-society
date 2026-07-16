@@ -1,0 +1,12 @@
+# The Watchman + incident store + the 7 tools run on the Python standard library.
+# These are for the MCP server, agent society, API, and cloud, installed in the venv.
+mcp>=1.2             # Model Context Protocol server (MCP tool layer)
+openai>=1.30
+fastapi>=0.110
+uvicorn>=0.29
+python-dotenv>=1.0
+oss2>=2.18            # Alibaba Cloud OSS SDK (deployment proof)
+psycopg2-binary>=2.9  # ApsaraDB Postgres driver (prod incident/memory store)
+
+# Dev/testing only (not needed to run the society or War Room):
+#   selenium>=4.4      # UI tests against headless Chrome
