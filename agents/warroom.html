@@ -223,16 +223,16 @@
   .adjnote b{color:var(--gold); font-weight:600}
 
   /* ---------- transcript ---------- */
-  .bottom{display:grid; grid-template-columns:1fr 286px; gap:14px; align-items:stretch;}
+  .bottom{display:grid; grid-template-columns:1fr 286px; gap:14px; align-items:stretch; min-width:0;}
   .feed{background:linear-gradient(180deg,var(--panel),var(--bg-2)); border:1px solid var(--line);
-    border-radius:14px; padding:12px 14px; overflow-y:auto; scroll-behavior:smooth; min-height:0;}
+    border-radius:14px; padding:12px 14px; overflow-y:auto; scroll-behavior:smooth; min-height:0; min-width:0;}
   .feed::-webkit-scrollbar{width:8px}.feed::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
-  .line{display:flex; gap:10px; padding:5px 0; font-size:13.5px; line-height:1.5;
+  .line{display:flex; gap:10px; padding:5px 0; font-size:13.5px; line-height:1.5; min-width:0;
     opacity:0; transform:translateY(6px); animation:rise .35s forwards;}
   @keyframes rise{to{opacity:1;transform:none}}
   .line .who{font-family:var(--mono); font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
-    padding-top:3px; white-space:nowrap; min-width:104px; text-align:right; color:var(--ink-3);}
-  .line .msg{color:var(--ink); flex:1}
+    padding-top:3px; white-space:nowrap; min-width:104px; text-align:right; color:var(--ink-3); flex-shrink:0;}
+  .line .msg{color:var(--ink); flex:1; min-width:0; overflow-wrap:break-word; word-break:break-word;}
   .line .msg .ev{color:var(--ink-3); font-family:var(--mono); font-size:12px;}
   .who-watch{color:var(--amber)} .who-disp{color:var(--ink-2)}
   .who-a{color:var(--cyan)} .who-b{color:var(--violet)} .who-adj{color:var(--gold)} .who-verify{color:var(--green)}
