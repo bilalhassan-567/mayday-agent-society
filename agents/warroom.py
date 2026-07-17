@@ -414,8 +414,9 @@ def main():
     except Exception:
         pass
     threading.Thread(target=_health_refresher, daemon=True).start()
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"War Room live at http://127.0.0.1:{PORT}  (patient expected at {PATIENT_URL})")
+    bind_host = os.environ.get("WARROOM_HOST", "127.0.0.1")
+    server = ThreadingHTTPServer((bind_host, PORT), Handler)
+    print(f"War Room live at http://{bind_host}:{PORT}  (patient expected at {PATIENT_URL})")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
