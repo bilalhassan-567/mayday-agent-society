@@ -68,7 +68,7 @@
   @keyframes breathe{0%,100%{opacity:.75}50%{opacity:1}}
 
   .app{position:relative; z-index:2; height:100vh; display:grid;
-    grid-template-rows:auto 1fr auto; gap:14px; padding:16px; }
+    grid-template-rows:auto minmax(0,1fr) minmax(0,300px); gap:14px; padding:16px; }
 
   /* ---------- top bar ---------- */
   .top{display:flex; align-items:center; gap:16px;}
