@@ -4,7 +4,7 @@ The patient's real config. Healthy baselines:
 
 | setting | healthy value | governs |
 |---|---|---|
-| `user_store_path` | `database/database.sqlite` | `/admin/users`, database check |
+| `user_store_path` | `/opt/mayday-agent-society/patient/database/database.sqlite` | `/admin/users`, database check |
 | `db_pool_available` | `10` | `/admin/users`, pool check |
 | `edit_save_route` | `admin.users.update` | `/admin/users/{id}/edit`, routing check |
 | `orders_service_delay_ms` | `40` | `/admin/orders`, dependency check |
