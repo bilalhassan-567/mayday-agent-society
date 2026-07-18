@@ -19,6 +19,7 @@ from tool_registry import schemas_for
 
 ROOT = Path(__file__).resolve().parent
 TOKENS_LOG = ROOT / "logs" / "tokens.jsonl"
+ACTIVE_MODEL_FILE = ROOT / "logs" / "active_model.txt"
 
 _S = config.llm_settings()
 _client = OpenAI(base_url=_S["base_url"], api_key=_S["api_key"] or "x")
@@ -38,6 +39,18 @@ FALLBACK_MODELS = ([m.strip() for m in _os.environ.get(
     "qwen3.7-max-2026-06-08,qwen3-max,qwen3.7-plus,qwen3.5-plus-2026-02-15",
 ).split(",") if m.strip()] if PROVIDER == "qwen" else [])
 _UNTRIED = list(FALLBACK_MODELS)  # consumed head-first as failovers happen
+
+# Cross-process memory: a fresh process (a new `run_incident.py`, or the War Room
+# restarting) would otherwise always retry MODEL first, re-eat the same 403, and
+# only then fail over — on every single run, forever, once a model is dry. Instead,
+# remember the last model that actually worked and start there next time, skipping
+# the models ahead of it in FALLBACK_MODELS (they're presumed still dry too; a real
+# quota reset next billing cycle just means editing/clearing this file).
+if PROVIDER == "qwen" and ACTIVE_MODEL_FILE.exists():
+    _remembered = ACTIVE_MODEL_FILE.read_text(encoding="utf-8").strip()
+    if _remembered and _remembered in FALLBACK_MODELS:
+        MODEL = _remembered
+        _UNTRIED = FALLBACK_MODELS[FALLBACK_MODELS.index(_remembered) + 1:]
 
 
 def _log_tokens(usage, tag: str) -> None:
@@ -79,6 +92,8 @@ def chat(messages, tools=None, temperature=0.0, tag="chat", json_mode=False):
             print(f"[llm] {MODEL} free quota exhausted -> failing over to {nxt}")
             MODEL = nxt
             kwargs["model"] = MODEL
+            ACTIVE_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
+            ACTIVE_MODEL_FILE.write_text(MODEL, encoding="utf-8")
     _log_tokens(getattr(r, "usage", None), tag)
     return r
 
