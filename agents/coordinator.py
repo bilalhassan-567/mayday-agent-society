@@ -7,6 +7,7 @@ debate -> deterministic trial-based adjudication -> stake settlement -> Verifier
 does the work on demand so the patrol loop is never blocked.
 """
 import json
+import random
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -180,8 +181,16 @@ def adjudicate(positions: list[dict], recalled: list[dict] | None = None) -> dic
     resolved = [t for t in trials if t["resolved"]]
     # Winner: reality first (only resolved fixes are eligible), then memory-anchored
     # canonical match, then earned trust. Confidence is intentionally absent here.
-    winner = max(resolved or trials,
-                 key=lambda t: (_matches_canonical(t["fix_obj"]), t["trust"]))
+    # Ties (equal trust, equal canonical match — e.g. both neutral 0.5 on a fresh
+    # category) are broken by a fair coin, NEVER by agent list order: Python's max()
+    # would otherwise always hand ties to whichever agent is built first ("A"), which
+    # then compounds every later trial through the trust delta and ends up fully
+    # polarizing the category after a few incidents even though neither agent was
+    # actually better.
+    pool = resolved or trials
+    best_key = max((_matches_canonical(t["fix_obj"]), t["trust"]) for t in pool)
+    tied = [t for t in pool if (_matches_canonical(t["fix_obj"]), t["trust"]) == best_key]
+    winner = tied[0] if len(tied) == 1 else random.choice(tied)
     winner_resolved = winner in resolved
 
     # Value anchor: if the society already knows the good value for this setting and
