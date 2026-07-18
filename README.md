@@ -17,6 +17,18 @@ scripted answers, no peeking at the fault key.
 
 ---
 
+## Live demo (running on Alibaba Cloud SAS right now)
+
+| | |
+| --- | --- |
+| **War Room** (live incident feed) | <http://47.236.108.248:8800> |
+| **Patient Console** (the app that breaks) | <http://47.236.108.248:8000> — login `admin@example.com` / `password` |
+
+![Mayday War Room — live](docs/img/warroom-live.png)
+![Patient Console — System Health, derived from live probes only](docs/img/patient-live.png)
+
+---
+
 ## Why I built this
 
 My final-year degree project (2023–24) was a rough version of this idea: a local
