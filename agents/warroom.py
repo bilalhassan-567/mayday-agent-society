@@ -44,6 +44,26 @@ _run_lock = threading.Lock()
 # cleared when it ends. The UI reads this (not the journal) to decide current state.
 _running = {"active": False, "fault": None, "incident_id": None,
             "detected_pages": None, "opened_at": None}
+# Bumped by Reset to disown whatever run is currently in flight. A society run
+# takes 1-5+ minutes (real LLM calls) and can't be killed mid-call, so Reset can't
+# actually stop it — instead every run checks "is my epoch still current" before
+# doing anything a human could not see coming back later (settling trust,
+# committing a fix, marking itself done). An abandoned run keeps executing in the
+# background but its result is discarded, not surfaced or committed.
+_epoch_lock = threading.Lock()
+_epoch = 0
+
+
+def _bump_epoch() -> int:
+    global _epoch
+    with _epoch_lock:
+        _epoch += 1
+        return _epoch
+
+
+def _current_epoch() -> int:
+    with _epoch_lock:
+        return _epoch
 # A code fix awaits a human click; the winning fix is held here until /api/approve.
 _pending = {"incident": None, "plan": None, "winner": None, "cause": None}
 # Cached patient health — refreshed by a background thread so /api/health returns
@@ -183,6 +203,7 @@ def _open_fresh_incident():
 
 
 def _run_society_thread(fault_key: str, auto: bool):
+    my_epoch = _current_epoch()  # Reset bumps this to disown this run mid-flight
     try:
         _pending.update(incident=None, plan=None, winner=None, cause=None)
         _artisan("fault:clear")
@@ -192,6 +213,8 @@ def _run_society_thread(fault_key: str, auto: bool):
         if incident is None:
             coordinator.log_event("warroom_error", detail=f"{fault_key} did not make the patient sick")
             return
+        if _current_epoch() != my_epoch:
+            return  # reset while we were still setting up — abandon before touching _running
         # Record the live incident so /api/state is authoritative for the UI on
         # (re)load — the UI never resurrects an incident from the journal anymore.
         _running.update(incident_id=incident["id"],
@@ -202,7 +225,8 @@ def _run_society_thread(fault_key: str, auto: bool):
         coordinator.log_event("incident_opened", incident_id=incident["id"],
                               detected_pages=json.loads(incident["detected_pages"]),
                               log_watermark=incident["log_watermark"], opened_at=incident["opened_at"])
-        result = coordinator.run_society(incident, auto=auto)
+        result = coordinator.run_society(incident, auto=auto,
+                                         abandoned=lambda: _current_epoch() != my_epoch)
         # If the Verifier gated a code fix for human sign-off, hold the winner so
         # /api/approve can commit it when the operator clicks Approve.
         if result.get("verification", {}).get("status") == "awaiting_approval":
@@ -213,9 +237,16 @@ def _run_society_thread(fault_key: str, auto: bool):
     except Exception as e:
         coordinator.log_event("warroom_error", detail=str(e))
     finally:
-        _running.update(active=False, fault=None, incident_id=None,
-                        detected_pages=None, opened_at=None)
-        _run_lock.release()
+        # If Reset fired while this run was still going, it already put _running
+        # back to idle and released the lock — don't stomp a NEWER run's state or
+        # double-release (which would raise on an already-unlocked lock).
+        if _current_epoch() == my_epoch:
+            _running.update(active=False, fault=None, incident_id=None,
+                            detected_pages=None, opened_at=None)
+            try:
+                _run_lock.release()
+            except RuntimeError:
+                pass
 
 
 def trigger(fault_key: str, auto: bool = False) -> dict:
@@ -353,6 +384,20 @@ class Handler(BaseHTTPRequestHandler):
                 if not oi:
                     break
                 incident_store.close_incident(oi["id"])
+            # Disown whatever run is in flight (it keeps executing — an in-flight
+            # LLM call can't be killed — but its result is now discarded, see
+            # coordinator.run_society's `abandoned` check) and make the UI's
+            # reported state correct immediately, not whenever that orphaned run
+            # happens to finish.
+            _bump_epoch()
+            _running.update(active=False, fault=None, incident_id=None,
+                            detected_pages=None, opened_at=None)
+            _pending.update(incident=None, plan=None, winner=None, cause=None)
+            if _run_lock.locked():
+                try:
+                    _run_lock.release()
+                except RuntimeError:
+                    pass
             self._send(200, json.dumps({"ok": True, "out": out.strip()[:200]}))
         else:
             self._send(404, json.dumps({"error": "not found"}))

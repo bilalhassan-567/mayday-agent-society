@@ -38,12 +38,20 @@ def notify(incident: dict) -> None:
     # and the War Room drive it once an incident is open.
 
 
-def run_society(incident: dict, *, approve: bool = False, auto: bool = False) -> dict:
+def run_society(incident: dict, *, approve: bool = False, auto: bool = False,
+                 abandoned=None) -> dict:
     """Dispatcher -> auction -> Investigators -> debate -> adjudicate -> settle ->
     VERIFY (commit the cure) -> write the case file to memory.
 
     approve=True grants human sign-off to a gated (code) fix this run; auto=True
     runs fully autonomously. Journals every step to coordinator.jsonl.
+
+    abandoned, if given, is checked right after adjudication (before trust moves
+    or any fix is actually committed) — a War Room Reset mid-run sets this so an
+    orphaned background run can't silently settle trust or mutate the patient
+    after the operator already gave up on it. Everything before that point
+    (investigation, debate, adjudication's trial-and-revert) has no lasting
+    side effect, so there is nothing to undo if we stop here.
     """
     import dispatcher
     import investigator
@@ -91,6 +99,11 @@ def run_society(incident: dict, *, approve: bool = False, auto: bool = False) ->
               category=w["category"], winner_resolved=verdict["winner_resolved"],
               trials=verdict["trials"], anchor_note=verdict.get("anchor_note", ""),
               escalation=verdict.get("escalation"))
+
+    if abandoned and abandoned():
+        return {"incident_id": incident_id, "dispatch": plan, "hypotheses": hypotheses,
+                "debate": positions, "verdict": verdict, "settlement": [],
+                "verification": {"status": "abandoned"}, "resolved_incident": None}
 
     settlement = settle(w["agent"], w["category"], verdict["winner_resolved"])
     log_event("settlement", incident_id=incident_id, category=w["category"], changes=settlement)
