@@ -38,3 +38,7 @@ docs/submission/demo-video-script.md
 .idea/
 .DS_Store
 Thumbs.db
+
+# ─── Local scratch / test tooling (never commit) ────────────
+.scratch_pw/
+node_modules/
