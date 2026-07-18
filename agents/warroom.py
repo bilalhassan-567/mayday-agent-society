@@ -52,6 +52,13 @@ _running = {"active": False, "fault": None, "incident_id": None,
 # background but its result is discarded, not surfaced or committed.
 _epoch_lock = threading.Lock()
 _epoch = 0
+# Incident IDs abandoned by a Reset — an orphaned run keeps journaling real
+# dispatch/hypothesis/debate events while it finishes in the background (it can't
+# be killed mid-LLM-call), and the SSE feed must stop showing them the instant
+# Reset is clicked, not just stop COMMITTING their result (see `abandoned` in
+# coordinator.run_society). Never trimmed — a demo session has a handful of
+# incidents, not thousands.
+_abandoned_ids: set[int] = set()
 
 
 def _bump_epoch() -> int:
@@ -388,7 +395,10 @@ class Handler(BaseHTTPRequestHandler):
             # LLM call can't be killed — but its result is now discarded, see
             # coordinator.run_society's `abandoned` check) and make the UI's
             # reported state correct immediately, not whenever that orphaned run
-            # happens to finish.
+            # happens to finish. Also blacklist its incident_id from the live feed
+            # so its dispatch/hypothesis/debate chatter stops appearing too.
+            if _running["incident_id"] is not None:
+                _abandoned_ids.add(_running["incident_id"])
             _bump_epoch()
             _running.update(active=False, fault=None, incident_id=None,
                             detected_pages=None, opened_at=None)
@@ -429,8 +439,15 @@ class Handler(BaseHTTPRequestHandler):
                         chunk = f.read()
                         pos = f.tell()
                     for line in chunk.splitlines():
-                        if line.strip():
-                            self.wfile.write(f"data: {line}\n\n".encode("utf-8"))
+                        if not line.strip():
+                            continue
+                        if _abandoned_ids:
+                            try:
+                                if json.loads(line).get("incident_id") in _abandoned_ids:
+                                    continue  # a Reset disowned this incident — don't show its chatter
+                            except json.JSONDecodeError:
+                                pass
+                        self.wfile.write(f"data: {line}\n\n".encode("utf-8"))
                     self.wfile.flush()
                 else:
                     self.wfile.write(b": keepalive\n\n")  # comment ping
