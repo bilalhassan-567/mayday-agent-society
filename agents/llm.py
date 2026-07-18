@@ -9,6 +9,7 @@ Responsibilities the plan mandates from call #1:
 - a tool-calling loop the Investigators drive
 """
 import json
+import threading
 from pathlib import Path
 
 from openai import OpenAI
@@ -53,12 +54,12 @@ if PROVIDER == "qwen" and ACTIVE_MODEL_FILE.exists():
         _UNTRIED = FALLBACK_MODELS[FALLBACK_MODELS.index(_remembered) + 1:]
 
 
-def _log_tokens(usage, tag: str) -> None:
+def _log_tokens(usage, tag: str, model: str) -> None:
     if usage is None:
         return
     TOKENS_LOG.parent.mkdir(parents=True, exist_ok=True)
     rec = {
-        "provider": PROVIDER, "model": MODEL, "tag": tag,
+        "provider": PROVIDER, "model": model, "tag": tag,
         "in": getattr(usage, "prompt_tokens", None),
         "out": getattr(usage, "completion_tokens", None),
     }
@@ -66,9 +67,19 @@ def _log_tokens(usage, tag: str) -> None:
         f.write(json.dumps(rec) + "\n")
 
 
+# Investigators A/B (and their debate sides) run concurrently in separate threads,
+# each calling chat() independently. MODEL/_UNTRIED are process-global, so advancing
+# them on a quota-exhausted error must be serialized — otherwise two threads racing
+# on the same dead model could both pop _UNTRIED and skip a model, or stomp each
+# other's write to ACTIVE_MODEL_FILE.
+_failover_lock = threading.Lock()
+
+
 def chat(messages, tools=None, temperature=0.0, tag="chat", json_mode=False):
     global MODEL
-    kwargs = {"model": MODEL, "messages": messages, "temperature": temperature}
+    my_model = MODEL  # the model THIS call is actually using — never trust the
+                       # global again after this point, another thread may advance it
+    kwargs = {"model": my_model, "messages": messages, "temperature": temperature}
     if tools:
         kwargs["tools"] = tools
         kwargs["tool_choice"] = "auto"
@@ -84,17 +95,23 @@ def chat(messages, tools=None, temperature=0.0, tag="chat", json_mode=False):
             # Free quota exhausted on this model — walk down the fallback chain.
             if "FreeTierOnly" not in str(e):
                 raise
-            while _UNTRIED and _UNTRIED[0] == MODEL:
-                _UNTRIED.pop(0)  # never retry the model that just ran dry
-            if not _UNTRIED:
-                raise  # chain exhausted — surface the quota error honestly
-            nxt = _UNTRIED.pop(0)
-            print(f"[llm] {MODEL} free quota exhausted -> failing over to {nxt}")
-            MODEL = nxt
-            kwargs["model"] = MODEL
-            ACTIVE_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
-            ACTIVE_MODEL_FILE.write_text(MODEL, encoding="utf-8")
-    _log_tokens(getattr(r, "usage", None), tag)
+            with _failover_lock:
+                if MODEL == my_model:
+                    # first thread to discover my_model is dry -> advance the chain
+                    while _UNTRIED and _UNTRIED[0] == MODEL:
+                        _UNTRIED.pop(0)  # never retry the model that just ran dry
+                    if not _UNTRIED:
+                        raise  # chain exhausted — surface the quota error honestly
+                    nxt = _UNTRIED.pop(0)
+                    print(f"[llm] {MODEL} free quota exhausted -> failing over to {nxt}")
+                    MODEL = nxt
+                    ACTIVE_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
+                    ACTIVE_MODEL_FILE.write_text(MODEL, encoding="utf-8")
+                # else: another thread already advanced MODEL past my_model — adopt
+                # it below instead of popping the chain again.
+                my_model = MODEL
+            kwargs["model"] = my_model
+    _log_tokens(getattr(r, "usage", None), tag, my_model)
     return r
 
 

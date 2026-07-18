@@ -6,6 +6,7 @@ debate -> deterministic trial-based adjudication -> stake settlement -> Verifier
 -> case-file memory. The Watchman's alarm enters through notify(); run_society()
 does the work on demand so the patrol loop is never blocked.
 """
+import concurrent.futures
 import json
 import random
 from datetime import datetime, timezone
@@ -61,12 +62,22 @@ def run_society(incident: dict, *, approve: bool = False, auto: bool = False) ->
               category=plan["category"], subtasks=plan["subtasks"])
     log_event("auction", incident_id=incident_id, lead=plan["lead"], bids=plan["auction"])
 
-    hypotheses = []
-    for agent in ("A", "B"):
-        result = investigator.investigate(agent, incident_id, plan["summary"], detected_pages)
-        hypotheses.append(result)
-        log_event("hypothesis", incident_id=incident_id, agent=agent,
-                  tools_called=result["tools_called"], hypothesis=result["hypothesis"])
+    # A and B are fully independent here (different tool subsets, no shared state
+    # until adjudication) — run them concurrently instead of one-after-the-other.
+    # Each is logged the moment IT finishes, not after both, so the War Room feed
+    # still shows whichever investigator lands first as soon as it lands.
+    by_agent = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+        futures = {ex.submit(investigator.investigate, agent, incident_id,
+                              plan["summary"], detected_pages): agent
+                   for agent in ("A", "B")}
+        for fut in concurrent.futures.as_completed(futures):
+            agent = futures[fut]
+            result = fut.result()
+            by_agent[agent] = result
+            log_event("hypothesis", incident_id=incident_id, agent=agent,
+                      tools_called=result["tools_called"], hypothesis=result["hypothesis"])
+    hypotheses = [by_agent["A"], by_agent["B"]]
 
     # Debate -> deterministic trial-based adjudication -> stake settlement.
     import debate

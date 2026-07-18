@@ -6,6 +6,7 @@ self-assessed fit x historical accuracy (trust) for that category. Before briefi
 it recalls similar prior case files from memory so past incidents sharpen the
 category guess and subtasks.
 """
+import concurrent.futures
 import json
 
 import llm
@@ -65,7 +66,12 @@ def dispatch(detected_pages, first_signal) -> dict:
     hint = case_memory.brief_hint(recalled)
 
     brief = _brief(detected_pages, first_signal, memory_hint=hint)
-    auction = [_bid(a, brief["summary"], brief["category"]) for a in trust_store.AGENTS]
+    # Each bid only reads its own agent's tools/trust against the (already-computed)
+    # brief — independent of the other agent's bid, so run them concurrently instead
+    # of one after the other.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+        auction = list(ex.map(lambda a: _bid(a, brief["summary"], brief["category"]),
+                               trust_store.AGENTS))
     auction.sort(key=lambda b: b["bid"], reverse=True)
     return {
         "summary": brief["summary"],

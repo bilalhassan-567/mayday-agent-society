@@ -6,6 +6,8 @@ fresh rebuttal evidence with its own tools, then holds or revises its position
 (and its confidence stake). This is the demo centerpiece; the referee
 (coordinator.adjudicate) resolves it deterministically afterward.
 """
+import concurrent.futures
+
 import llm
 import tools
 from tool_registry import INVESTIGATOR_TOOLS
@@ -76,10 +78,19 @@ def _one_side(agent: str, incident_id: int, mine: dict, theirs: dict, theirs_age
 
 
 def run_debate(incident_id: int, hypotheses: list[dict]) -> list[dict]:
-    """One attack round from each side. Returns each agent's post-debate position."""
+    """One attack round from each side. Returns each agent's post-debate position.
+
+    Each side only reads the OTHER's pre-debate hypothesis (by_agent, fixed before
+    this runs) — neither side's output depends on the other's debate round, so both
+    can run concurrently instead of one after the other."""
     by_agent = {h["agent"]: h["hypothesis"] for h in hypotheses}
-    rounds = []
-    for agent in ("A", "B"):
-        other = "B" if agent == "A" else "A"
-        rounds.append(_one_side(agent, incident_id, by_agent[agent], by_agent[other], other))
-    return rounds
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+        futures = {}
+        for agent in ("A", "B"):
+            other = "B" if agent == "A" else "A"
+            fut = ex.submit(_one_side, agent, incident_id, by_agent[agent], by_agent[other], other)
+            futures[fut] = agent
+        for fut in concurrent.futures.as_completed(futures):
+            results[futures[fut]] = fut.result()
+    return [results["A"], results["B"]]
